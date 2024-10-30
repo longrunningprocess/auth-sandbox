@@ -1,0 +1,13 @@
+# https://developers.cloudflare.com/workers/wrangler/configuration
+
+# https://developers.cloudflare.com/workers/configuration/compatibility-dates
+compatibility_date = "2024-10-30"
+
+# https://developers.cloudflare.com/workers/wrangler/configuration/#custom-builds
+[build]
+command = "pnpm build"
+
+[[d1_databases]]
+binding = "DB_Auth" # i.e. available in your Worker on env.DB
+database_name = "Auth"
+database_id = "b3f48161-a488-4737-ab9a-f59c22090c80"
