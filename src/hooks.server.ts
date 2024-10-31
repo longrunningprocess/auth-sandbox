@@ -20,6 +20,7 @@ async function initialize_config(event: RequestEvent) {
 		],
 
 		secret,
+		trustHost: true,
 	}
 }
 
