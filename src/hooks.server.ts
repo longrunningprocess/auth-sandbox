@@ -44,13 +44,14 @@ const authz_handle: Handle = async ({event, resolve}) => {
 	async function authz(event: RequestEvent) {
 		console.log('hooks.server.authz')
 
+		const AUTH_ERROR_MESSAGE = 'You must be signed in and have permission to access this page'
 		const { route, locals } = event
 
 		if (route.id?.startsWith('/protected')) {
 			const session = await locals.auth()
 
 			if (!session?.user) {
-				throw error(401, 'You must be signed in and have permission to access this page')
+				throw error(401, AUTH_ERROR_MESSAGE)
 			}
 
 			const sql = `
@@ -60,7 +61,7 @@ const authz_handle: Handle = async ({event, resolve}) => {
 			`
 			const found = await locals.db.prepare(sql).bind(session.user.email, 'ontology').first('found')
 			if (! found) {
-				throw error(401, 'You must be signed in and have permission to access this page')
+				throw error(401, AUTH_ERROR_MESSAGE)
 			}
 		}
 	}
