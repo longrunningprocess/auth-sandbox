@@ -8,7 +8,7 @@ import { sequence } from '@sveltejs/kit/hooks'
 const { handle: authn_handle } = SvelteKitAuth(initialize_config)
 
 async function initialize_config(event: RequestEvent) {
-	console.log('hooks.server.authn')
+	console.log('hooks.server.initialize_config')
 
 	const clientId = event.platform?.env.GOOGLE_OAUTH_CLIENT_ID || GOOGLE_OAUTH_CLIENT_ID
 	const clientSecret = event.platform?.env.GOOGLE_OAUTH_CLIENT_SECRET || GOOGLE_OAUTH_CLIENT_SECRET
@@ -24,13 +24,25 @@ async function initialize_config(event: RequestEvent) {
 	}
 }
 
+const database_setup_handle: Handle = ({event, resolve}) => {
+	console.log('hooks.server.database_setup_handle')
+
+	if (!event.platform?.env.DB_Auth) {
+		throw error(500, `database missing from platform arg: ${JSON.stringify(event.platform)}`)
+	}
+
+	event.locals.db = event.platform.env.DB_Auth
+
+	return resolve(event)
+}
+
 const authz_handle: Handle = async ({event, resolve}) => {
 	await authz(event)
 
 	return resolve(event)
 
 	async function authz(event: RequestEvent) {
-		console.log('hooks.server.authz', { route: event.route, auth: await event.locals.auth(), request: event.request })
+		console.log('hooks.server.authz')
 
 		const { route, locals } = event
 
@@ -40,8 +52,18 @@ const authz_handle: Handle = async ({event, resolve}) => {
 			if (!session?.user) {
 				throw error(401, 'You must be signed in and have permission to access this page')
 			}
+
+			const sql = `
+				SELECT true AS found
+				FROM Users
+				WHERE email = ? AND app = ?
+			`
+			const found = await locals.db.prepare(sql).bind(session.user.email, 'ontology').first('found')
+			if (! found) {
+				throw error(401, 'You must be signed in and have permission to access this page')
+			}
 		}
 	}
 }
 
-export const handle = sequence(authn_handle, authz_handle)
+export const handle = sequence(authn_handle, database_setup_handle, authz_handle)
